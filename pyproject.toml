@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "llm-qd"
+version = "0.1.0"
+description = ""
+authors = ["itsdawei <dhlee@usc.edu>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+ribs = {extras = ["visualize"], version = "0.6.4"}
+fire = "^0.5.0"
+matplotlib = ">=3.0.0"
+scipy="^1.13.0"
+tqdm = "^4.66.1"
+torch = "2.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
