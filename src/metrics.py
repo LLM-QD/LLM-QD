@@ -8,23 +8,24 @@ def get_diversities(code_a, code_b):
     return structural_diversity, semantic_diversity
 
 
-def compute_list_diversity(codes):
-    if len(codes) < 1:
+def pairwise_diversity(code_list):
+    """Computes pairwise semantic and structural diversity"""
+    if len(code_list) < 1:
         return 0, 0
 
     total_structural = 0
     total_semantic = 0
 
     # Pairwise diversity.
-    for i, code_i in enumerate(codes):
-        for j, code_j in enumerate(codes):
+    for i, code_i in enumerate(code_list):
+        for j, code_j in enumerate(code_list):
             if i == j:
                 continue
             struct_div, sem_div = get_diversities(code_i, code_j)
             total_structural += struct_div
             total_semantic += sem_div
 
-    count = len(codes) * len(codes)
+    count = len(code_list) * len(code_list)
     avg_structural = total_structural / count
     avg_semantic = total_semantic / count
 

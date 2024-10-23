@@ -5,6 +5,7 @@ from logdir import LogDir
 
 from src.dataloader import CodeContestsDataset
 from src.models import RepeatedSample
+from src.metrics import pairwise_diversity
 
 
 def generate_solutions(model, description, k=5):
