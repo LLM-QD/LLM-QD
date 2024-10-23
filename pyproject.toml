@@ -8,12 +8,22 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-ribs = {extras = ["visualize"], version = "0.6.4"}
-fire = "^0.5.0"
-matplotlib = ">=3.0.0"
-scipy="^1.13.0"
-tqdm = "^4.66.1"
-torch = "2.2.1"
+# ribs = {extras = ["visualize"], version = "0.6.4"}
+# fire = "^0.5.0"
+# scipy="^1.13.0"
+dask = "^2024.10.0"
+distributed = "^2024.10.0"
+tqdm = "^4.66.5"
+matplotlib = "^3.9.2"
+torch = "^2.5.0"
+ipykernel = "^6.29.5"
+datasets = "^3.0.2"
+ipywidgets = "^8.1.5"
+openai = "^1.52.1"
+logdir = "^0.13.0"
+pandas = "^2.2.3"
+codebleu = "^0.7.0"
+tree-sitter-python = "0.21"
 
 
 [build-system]
