@@ -43,5 +43,5 @@ if __name__ == "__main__":
     diversity = get_diversities(b, c)
     print(diversity)
 
-    diversity = compute_list_diversity([a, b, c])
+    diversity = pairwise_diversity([a, b, c])
     print(diversity)

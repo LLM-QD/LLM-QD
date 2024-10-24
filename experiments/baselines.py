@@ -4,18 +4,12 @@ import pandas as pd
 from logdir import LogDir
 
 from src.dataloader import CodeContestsDataset
-from src.models import RepeatedSample
 from src.metrics import pairwise_diversity
+from src.models import LLMSampler
 
 
 def generate_solutions(model, description, k=5):
-    pre_prompt = ("Q: Write python code to solve the following coding "
-                  "problem that obeys the constraints and passes the "
-                  "example test cases. The output code needs to read "
-                  "from and write to standard IO. Please wrap your code "
-                  "answer using ```:")
-    prompt = f"{pre_prompt}\n{description}\nA: "
-    solutions = model.inference(prompt, k)
+    solutions = model.inference(description, k)
     return solutions
 
 
@@ -80,15 +74,33 @@ def evaluate_accuracy(solution_files, test_cases):
     return metrics
 
 
-def run_experiment(solution_files = None):
+def run_experiment(model_name, num_solutions, solution_files=None):
     # Load dataset.
     dataset = CodeContestsDataset()
 
-    model = RepeatedSample()
-    k = 3
+    model = None
+    if model_name == "single_sampler":
+        pre_prompt = (f"Repeat the following task {num_solutions} times: "
+                      "Q: Write python code to solve the following coding "
+                      "problem that obeys the constraints and passes the "
+                      "example test cases. The output code needs to read from "
+                      "and write to standard IO. Please wrap your code answer "
+                      "using ```:")
+        model = LLMSampler(pre_prompt)
+    elif model_name == "repeated_sampler":
+        # Prompt from https://github.com/ScalingIntelligence/large_language_monkeys/blob/main/llmonk/generate/code_contests.py
+        pre_prompt = ("Q: Write python code to solve the following coding "
+                      "problem that obeys the constraints and passes the "
+                      "example test cases. The output code needs to read from "
+                      "and write to standard IO. Please wrap your code answer "
+                      "using ```:")
+        model = LLMSampler(pre_prompt, temperature=0.6)
 
     logdir = LogDir("[MODEL_NAME]")
-    additional_info = [f"Model: {type(model).__name__}", f"k: {k}"]
+    additional_info = [
+        f"Model: {type(model).__name__}",
+        f"num_solutions: {num_solutions}",
+    ]
     logdir.readme(date=True,
                   git_commit=True,
                   git_path="../",
@@ -108,7 +120,7 @@ def run_experiment(solution_files = None):
         print(name)
 
         # Generate solutions.
-        solutions = generate_solutions(model, desc, k=k)
+        solutions = generate_solutions(model, desc, k=num_solutions)
 
         # Writes solutions to files.
         solution_files = write_solutions_to_files(logdir, solutions, name)
@@ -130,4 +142,5 @@ def run_experiment(solution_files = None):
 
 
 if __name__ == "__main__":
-    run_experiment()
+    num_solutions = 3
+    run_experiment("single_sampler", num_solutions)
