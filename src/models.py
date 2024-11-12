@@ -1,6 +1,8 @@
 import os
 
 from openai import OpenAI
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 
 def query(prompt, temperature):
@@ -40,28 +42,28 @@ class LLMSampler:
             solutions.append(solution)
         return solutions
 
-class LLMQD:
 
-    def __init__(self, pre_prompt="", temperature=0.5):
-        self.pre_prompt = pre_prompt
-        self.temperature = temperature
+class NomicEmbedText:
 
-    def inference(self, prompt, num_samples):
-        prompt = f"{self.pre_prompt}\n{prompt}\nA: "
+    def __init__(self):
+        self.model = SentenceTransformer("nomic-ai/nomic-embed-text-v1",
+                                         trust_remote_code=True)
 
-        solutions = []
-        for _ in range(num_samples):
-            solution = query(prompt, self.temperature)
-            solutions.append(solution)
-        return solutions
+    def inference(self, sentence):
+        # TODO Split the tokens properly
+        tokens = [f"classification: {t}" for t in sentence.split(" ")]
+        embeddings = self.model.encode(tokens, convert_to_tensor=True)
+        return embeddings
 
 
 if __name__ == "__main__":
-    model = LLMSampler()
-    two_sum = """
-Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+    two_sum = """Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
 You may assume that each input would have exactly one solution, and you may not use the same element twice.
 You can return the answer in any order.
 """
-    output = model.inference(two_sum, 1)
+
+    # model = LLMSampler()
+
+    model = NomicEmbedText()
+    output = model.inference(two_sum)
     print(output)
