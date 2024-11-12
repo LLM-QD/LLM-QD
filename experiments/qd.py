@@ -1,6 +1,8 @@
 import subprocess
 
+import numpy as np
 import pandas as pd
+import tqdm
 from logdir import LogDir
 from ribs.archives import GridArchive
 from ribs.emitters import EvolutionStrategyEmitter
@@ -8,7 +10,7 @@ from ribs.schedulers import Scheduler
 
 from src.dataloader import CodeContestsDataset
 from src.metrics import get_diversities, pairwise_diversity
-from src.models import LLMSampler
+from src.models import LLMSampler, NomicEmbedText
 
 
 def generate_solutions(model, description, k=5):
@@ -76,13 +78,14 @@ def evaluate_accuracy(solution_files, test_cases):
             metrics["passed"].append(output == expected_output)
     return metrics
 
+
 def create_scheduler(init_prompt, init_code):
     ranges = [(0, 1)]
     archive = GridArchive(solution_dim=100,
-                       dims=(100, 100),
-                       ranges=ranges,
-                       learning_rate=0.01,
-                       threshold_min=0.0)
+                          dims=(100, 100),
+                          ranges=ranges,
+                          learning_rate=0.01,
+                          threshold_min=0.0)
 
     emb = prompt_to_emb(prompt)
 
@@ -102,22 +105,9 @@ def create_scheduler(init_prompt, init_code):
     return scheduler
 
 
-
 def run_experiment(model_name, num_solutions, solution_files=None):
     # Load dataset.
     dataset = CodeContestsDataset()
-
-    # LLM model.
-    pre_prompt = ("Q: Write python code to solve the following coding "
-                  "problem that obeys the constraints and passes the "
-                  "example test cases. The output code needs to read from "
-                  "and write to standard IO. Please wrap your code answer "
-                  "using ```:")
-    temperature = 0.5
-    llm = LLMSampler(pre_prompt, temperature=temperature)
-
-    # Create Scheduler.
-    scheduler = create_scheduler()
 
     logdir = LogDir("[MODEL_NAME]")
     additional_info = [
@@ -139,26 +129,50 @@ def run_experiment(model_name, num_solutions, solution_files=None):
         "passed": [],
     }
 
-    for name, desc, tests in dataset:
+    embedding_model = NomicEmbedText()
+
+    for name, desc, tests in dataset[:1]:
         print(name)
 
+        # LLM model.
+        pre_prompt = ("Q: Write python code to solve the following coding "
+                      "problem that obeys the constraints and passes the "
+                      "example test cases. The output code needs to read from "
+                      "and write to standard IO. Please wrap your code answer "
+                      "using ```:")
+        temperature = 0.5
+        llm = LLMSampler(pre_prompt, temperature=temperature)
+
+        init_prompt = desc
+        init_code = llm.inference(init_prompt, num_samples=1)
+
+        # Create Scheduler.
+        scheduler = create_scheduler(init_prompt=init_prompt,
+                                     init_code=init_code)
+
         # QD loop.
-        for i in range(100):
+        for i in tqdm.tqdm(range(100)):
             prompt_embeddings = scheduler.ask()
             codes = []
             for emb in prompt_embeddings:
                 prompt = self.emb_to_prompt(emb)
                 # TODO: Remap tokens to vocab
-                codes.append(llm.inference(prompt))
+                codes.append(llm.inference(prompt, num_samples=1))
 
             # Writes solutions to files.
             solution_files = write_solutions_to_files(logdir, codes, name)
 
             # Evaluate objective (accuracy of code).
-            acc_metrics = evaluate_accuracy(solution_files, tests["private_tests"])
+            acc_metrics = evaluate_accuracy(solution_files,
+                                            tests["private_tests"])
 
-            # Evlauate features ().
-            for code in codes:
+            # Evlauate features.
+            features = np.empty((len(codes), 2))
+            for j, code in enumerate(codes):
+                structural_div, semantic_div = get_diversities(init_code, code)
+                features[j] = [structural_div, semantic_div]
+
+            scheduler.tell(acc_metrics, features)
 
         # Generate solutions.
         # TODO: Sample solutions from archive.
@@ -176,8 +190,6 @@ def run_experiment(model_name, num_solutions, solution_files=None):
             metrics[key] += value
 
         # Evaluate diversity.
-
-
 
     df = pd.DataFrame(metrics)
     df.to_csv(logdir.pfile("test_summary.csv", touch=True))
