@@ -10,8 +10,9 @@ from ribs.schedulers import Scheduler
 
 from src.dataloader import CodeContestsDataset
 from src.metrics import get_diversities, pairwise_diversity
-from src.models import LLMSampler, NomicEmbedText
+from src.models import LLMSampler, NomicEmbedText, EmbeddingMatrix
 
+EmbedMatrix = EmbeddingMatrix()
 
 def generate_solutions(model, description, k=5):
     solutions = model.inference(description, k)
@@ -78,17 +79,19 @@ def evaluate_accuracy(solution_files, test_cases):
             metrics["passed"].append(output == expected_output)
     return metrics
 
-
+# Why does the scheduler need the initial code? 
 def create_scheduler(init_prompt, init_code):
     ranges = [(0, 1)]
+# Why is the solution dim 100? Should it not match the embedding dim?
     archive = GridArchive(solution_dim=100,
                           dims=(100, 100),
                           ranges=ranges,
                           learning_rate=0.01,
                           threshold_min=0.0)
 
-    emb = prompt_to_emb(prompt)
+    emb = EmbedMatrix.tokenize(init_prompt)
 
+    # Do we need to flatten the embeddings for x0?  
     emitters = [
         EvolutionStrategyEmitter(
             archive,
@@ -101,7 +104,7 @@ def create_scheduler(init_prompt, init_code):
         ) for _ in range(15)
     ]
 
-    scheduler = Scheduler(self.archive, self.emitters)
+    scheduler = Scheduler(archive, emitters)
     return scheduler
 
 
@@ -155,7 +158,7 @@ def run_experiment(model_name, num_solutions, solution_files=None):
             prompt_embeddings = scheduler.ask()
             codes = []
             for emb in prompt_embeddings:
-                prompt = self.emb_to_prompt(emb)
+                prompt = EmbedMatrix.decode(emb)
                 # TODO: Remap tokens to vocab
                 codes.append(llm.inference(prompt, num_samples=1))
 
@@ -175,8 +178,9 @@ def run_experiment(model_name, num_solutions, solution_files=None):
             scheduler.tell(acc_metrics, features)
 
         # Generate solutions.
-        # TODO: Sample solutions from archive.
-
+        # TODO: Sample solutions from archive
+        elites = scheduler.archive.sample_elites(num_solutions)
+        solutions = elites["Solutions"]
         # Writes solutions to files.
         solution_files = write_solutions_to_files(logdir, solutions, name)
 
