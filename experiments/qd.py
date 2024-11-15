@@ -10,7 +10,7 @@ from ribs.schedulers import Scheduler
 
 from src.dataloader import CodeContestsDataset
 from src.metrics import get_diversities, pairwise_diversity
-from src.models import LLMSampler, NomicEmbedText, EmbeddingMatrix
+from src.models import LLMSampler, EmbeddingMatrix
 
 EmbedMatrix = EmbeddingMatrix()
 

@@ -1,7 +1,7 @@
 import os
 
 from openai import OpenAI
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 import torch
 import numpy as np
@@ -45,17 +45,17 @@ class LLMSampler:
         return solutions
 
 
-class NomicEmbedText:
+# class NomicEmbedText:
 
-    def __init__(self):
-        self.model = SentenceTransformer("nomic-ai/nomic-embed-text-v1",
-                                         trust_remote_code=True)
+#     def __init__(self):
+#         self.model = SentenceTransformer("nomic-ai/nomic-embed-text-v1",
+#                                          trust_remote_code=True)
 
-    def inference(self, sentence):
-        # TODO Split the tokens properly
-        tokens = [f"classification: {t}" for t in sentence.split(" ")]
-        embeddings = self.model.encode(tokens, convert_to_tensor=True)
-        return embeddings
+#     def inference(self, sentence):
+#         # TODO Split the tokens properly
+#         tokens = [f"classification: {t}" for t in sentence.split(" ")]
+#         embeddings = self.model.encode(tokens, convert_to_tensor=True)
+#         return embeddings
 
 class EmbeddingMatrix: 
     def __init__(self):
@@ -89,6 +89,10 @@ You can return the answer in any order.
 
     # model = LLMSampler()
 
-    model = NomicEmbedText()
-    output = model.inference(two_sum)
+    # model = NomicEmbedText()
+    # output = model.inference(two_sum)
+    # print(output)
+    model = EmbeddingMatrix()
+    output = model.tokenize(two_sum)
     print(output)
+
